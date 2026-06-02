@@ -1,0 +1,151 @@
+version: '3.9'
+
+# ════════════════════════════════════════════════════════════════
+# CoopTaxi — Docker Compose PRODUCCIÓN
+# Levanta: PostgreSQL + Redis + API + Admin + Chofer + Pasajero
+#
+# Primer uso:
+#   cp .env.production .env
+#   docker compose -f docker-compose.prod.yml up -d postgres redis
+#   docker compose -f docker-compose.prod.yml run --rm api npm run seed
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Uso normal:
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml down
+#   docker compose -f docker-compose.prod.yml logs -f api
+# ════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: cooptaxi_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${DATABASE_USER:-cooptaxi}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB:       ${DATABASE_NAME:-cooptaxi_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER:-cooptaxi}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [cooptaxi_net]
+
+  # ── Redis ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: cooptaxi_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [cooptaxi_net]
+
+  # ── API NestJS ─────────────────────────────────────────────
+  api:
+    build:
+      context: ./cooptaxi-api
+      dockerfile: Dockerfile
+    container_name: cooptaxi_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV:             production
+      PORT:                 3000
+      DATABASE_HOST:        postgres
+      DATABASE_PORT:        5432
+      DATABASE_USER:        ${DATABASE_USER:-cooptaxi}
+      DATABASE_PASSWORD:    ${DATABASE_PASSWORD}
+      DATABASE_NAME:        ${DATABASE_NAME:-cooptaxi_db}
+      REDIS_HOST:           redis
+      REDIS_PORT:           6379
+      JWT_SECRET:           ${JWT_SECRET}
+      JWT_EXPIRES_IN:       ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_SECRET:   ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      FIREBASE_PROJECT_ID:   ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_PRIVATE_KEY:  ${FIREBASE_PRIVATE_KEY:-}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL:-}
+      PANIC_RADIUS_KM:       ${PANIC_RADIUS_KM:-2}
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/api || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks: [cooptaxi_net]
+
+  # ── Panel Admin + Despachador ──────────────────────────────
+  admin:
+    build:
+      context: ./cooptaxi-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_WS_URL:  ${VITE_WS_URL}
+    container_name: cooptaxi_admin
+    restart: unless-stopped
+    ports:
+      - '3001:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [cooptaxi_net]
+
+  # ── App Chofer PWA ─────────────────────────────────────────
+  chofer:
+    build:
+      context: ./cooptaxi-chofer
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_WS_URL:  ${VITE_WS_URL}
+    container_name: cooptaxi_chofer
+    restart: unless-stopped
+    ports:
+      - '3002:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [cooptaxi_net]
+
+  # ── App Pasajero PWA ───────────────────────────────────────
+  pasajero:
+    build:
+      context: ./cooptaxi-pasajero
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_WS_URL:  ${VITE_WS_URL}
+    container_name: cooptaxi_pasajero
+    restart: unless-stopped
+    ports:
+      - '3003:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [cooptaxi_net]
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  cooptaxi_net:
+    driver: bridge
