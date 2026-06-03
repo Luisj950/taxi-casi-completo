@@ -79,7 +79,7 @@ export class DespachoService {
       });
     } else {
       // Rechazó: desasignar y re-encolar para el siguiente
-      carrera.chofer_id = null;
+      carrera.chofer_id = null as any;
       carrera.estado = EstadoCarrera.PENDIENTE;
       await this.carreraRepo.save(carrera);
       await this.usersService.setEstadoChofer(chofer_id, EstadoChofer.DISPONIBLE);
@@ -104,7 +104,7 @@ export class DespachoService {
     carrera.fin_carrera = ahora;
     carrera.duracion_min = Math.round((ahora.getTime() - inicio.getTime()) / 60_000);
     carrera.calificacion = dto.calificacion;
-    carrera.comentario = dto.comentario;
+    carrera.comentario = dto.comentario || '';
     await this.carreraRepo.save(carrera);
 
     // Actualizar rating del chofer y liberarlo

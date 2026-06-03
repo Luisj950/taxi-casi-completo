@@ -11,11 +11,11 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production'
-      ? ['https://tu-dominio.com']
-      : '*',
-    credentials: true,
-  });
+  origin: ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true, // Esto es clave para que la web funcione
+});
+
 
   // Filtro global de excepciones
   app.useGlobalFilters(new AllExceptionsFilter());

@@ -3,10 +3,10 @@ import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
 import { Job } from 'bull';
-import { DESPACHO_QUEUE } from './despacho.service';
-import { Carrera, EstadoCarrera } from './entities/carrera.entity';
-import { User, UserRol, EstadoChofer } from '../users/entities/user.entity';
-import { DespachoGateway } from './despacho.gateway';
+import { DESPACHO_QUEUE } from '../despacho.service';
+import { Carrera, EstadoCarrera } from '../entities/carrera.entity';
+import { User, UserRol, EstadoChofer } from '../../users/entities/user.entity';
+import { DespachoGateway } from '../despacho.gateway';
 
 @Processor(DESPACHO_QUEUE)
 export class DespachoProcessor {
@@ -45,7 +45,7 @@ export class DespachoProcessor {
 
     const choferes = await qb.getMany();
     // Filtrar los que tienen mora
-    const elegible = choferes.find((c) => !c.cuotas.some((q) => !q.pagada));
+    const elegible = choferes.find((c) => !c.cuotas.some((q: any) => !q.pagada));
 
     if (!elegible) {
       this.logger.warn(`Sin choferes disponibles para carrera ${carrera_id}`);

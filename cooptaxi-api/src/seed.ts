@@ -11,16 +11,16 @@ import { User, UserRol, EstadoChofer } from './users/entities/user.entity';
 import { Vehiculo } from './flota/entities/vehiculo.entity';
 import { Cuota, TipoCuota } from './finanzas/entities/cuota.entity';
 import { Documento, TipoDocumento } from './documentos/entities/documento.entity';
-import * as dayjs from 'dayjs';
+const dayjs = require('dayjs');
 
 const ds = new DataSource({
   type: 'postgres',
-  host:     process.env.DATABASE_HOST     ?? 'localhost',
-  port:     Number(process.env.DATABASE_PORT) ?? 5432,
-  username: process.env.DATABASE_USER     ?? 'cooptaxi',
-  password: process.env.DATABASE_PASSWORD ?? '',
-  database: process.env.DATABASE_NAME     ?? 'cooptaxi_db',
-  entities: [User, Vehiculo, Cuota, Documento],
+  host: '127.0.0.1',
+  port: 5433,
+  username: 'cooptaxi',
+  password: 'supersecret',
+  database: 'cooptaxi_db',
+  entities: ['src/**/*.entity.ts'],
   synchronize: true,
   logging: false,
 });

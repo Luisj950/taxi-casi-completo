@@ -2,20 +2,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as dayjs from 'dayjs';
+const dayjs = require('dayjs');
 import { Cuota, TipoCuota, MetodoPago } from './entities/cuota.entity';
 
 export class CreateCuotaDto {
-  socio_id: string;
-  tipo: TipoCuota;
-  monto: number;
-  fecha_vencimiento: string;
+  socio_id!: string;
+  tipo!: TipoCuota;
+  monto!: number;
+  fecha_vencimiento!: string;
   descripcion?: string;
 }
 
 export class PagarCuotaDto {
-  monto: number;
-  metodo: MetodoPago;
+  monto!: number;
+  metodo!: MetodoPago;
   comprobante?: string;
 }
 
@@ -65,7 +65,7 @@ export class FinanzasService {
     cuota.pagada = true;
     cuota.fecha_pago = new Date();
     cuota.metodo_pago = dto.metodo;
-    cuota.comprobante = dto.comprobante;
+    `cuota.comprobante = dto.comprobante || '';`
     await this.repo.save(cuota);
 
     // Verificar si el socio quedó sin mora

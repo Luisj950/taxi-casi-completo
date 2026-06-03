@@ -1,5 +1,12 @@
 import { cn } from '@/lib/utils';
-import { type ButtonHTMLAttributes, type ReactNode, forwardRef, Fragment } from 'react';
+import { 
+  type ButtonHTMLAttributes, 
+  type InputHTMLAttributes, 
+  type SelectHTMLAttributes, 
+  type ReactNode, 
+  forwardRef, 
+  Fragment 
+} from 'react';
 
 // ── Button ────────────────────────────────────────────────
 type BtnVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'success';
@@ -98,48 +105,52 @@ export function StatCard({ label, value, sub, subVariant = 'neutral', icon }: {
 }
 
 // ── Input ─────────────────────────────────────────────────
-export function Input({ label, error, className, ...p }:
-  React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string }
-) {
-  return (
-    <div className="flex flex-col gap-1">
-      {label && <label className="text-xs font-medium text-gray-500">{label}</label>}
-      <input
-        className={cn(
-          'h-9 px-3 text-sm rounded-lg border border-gray-200 bg-white',
-          'focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent',
-          'placeholder:text-gray-300',
-          error && 'border-danger-400',
-          className,
-        )}
-        {...p}
-      />
-      {error && <p className="text-xs text-danger-600">{error}</p>}
-    </div>
-  );
-}
+export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string }>(
+  ({ label, error, className, ...p }, ref) => {
+    return (
+      <div className="flex flex-col gap-1">
+        {label && <label className="text-xs font-medium text-gray-500">{label}</label>}
+        <input
+          ref={ref}
+          className={cn(
+            'h-9 px-3 text-sm rounded-lg border border-gray-200 bg-white',
+            'focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent',
+            'placeholder:text-gray-300',
+            error && 'border-danger-400',
+            className,
+          )}
+          {...p}
+        />
+        {error && <p className="text-xs text-danger-600">{error}</p>}
+      </div>
+    );
+  }
+);
+Input.displayName = 'Input';
 
 // ── Select ────────────────────────────────────────────────
-export function Select({ label, error, children, className, ...p }:
-  React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string; children: ReactNode }
-) {
-  return (
-    <div className="flex flex-col gap-1">
-      {label && <label className="text-xs font-medium text-gray-500">{label}</label>}
-      <select
-        className={cn(
-          'h-9 px-3 text-sm rounded-lg border border-gray-200 bg-white',
-          'focus:outline-none focus:ring-2 focus:ring-primary-400',
-          className,
-        )}
-        {...p}
-      >
-        {children}
-      </select>
-      {error && <p className="text-xs text-danger-600">{error}</p>}
-    </div>
-  );
-}
+export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string; children: ReactNode }>(
+  ({ label, error, children, className, ...p }, ref) => {
+    return (
+      <div className="flex flex-col gap-1">
+        {label && <label className="text-xs font-medium text-gray-500">{label}</label>}
+        <select
+          ref={ref}
+          className={cn(
+            'h-9 px-3 text-sm rounded-lg border border-gray-200 bg-white',
+            'focus:outline-none focus:ring-2 focus:ring-primary-400',
+            className,
+          )}
+          {...p}
+        >
+          {children}
+        </select>
+        {error && <p className="text-xs text-danger-600">{error}</p>}
+      </div>
+    );
+  }
+);
+Select.displayName = 'Select';
 
 // ── Spinner ───────────────────────────────────────────────
 export function Spinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {

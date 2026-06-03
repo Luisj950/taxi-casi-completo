@@ -29,15 +29,14 @@ import { AltaDemandaModule } from './alta-demanda/alta-demanda.module';
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
         type: 'postgres',
-        host: cfg.get('DATABASE_HOST'),
-        port: cfg.get<number>('DATABASE_PORT'),
-        username: cfg.get('DATABASE_USER'),
-        password: cfg.get('DATABASE_PASSWORD'),
-        database: cfg.get('DATABASE_NAME'),
-        // Carga automática de entities — desactivar en producción
+        host: '127.0.0.1',
+        port: 5433,
+        username: 'cooptaxi',
+        password: 'supersecret',
+        database: 'cooptaxi_db',
         autoLoadEntities: true,
-        synchronize: cfg.get('NODE_ENV') !== 'production',
-        logging: cfg.get('NODE_ENV') === 'development',
+        synchronize: true,
+        logging: false,
       }),
     }),
 
@@ -47,10 +46,10 @@ import { AltaDemandaModule } from './alta-demanda/alta-demanda.module';
       inject: [ConfigService],
       useFactory: (cfg: ConfigService) => ({
         redis: {
-          host: cfg.get('REDIS_HOST'),
-          port: cfg.get<number>('REDIS_PORT'),
+          host: '127.0.0.1',
+          port: 6379,
         },
-      }),
+      } as any), // <-- AQUÍ ESTÁ LA MAGIA QUE DESTRABA EL ERROR
     }),
 
     // ─── Cron jobs (@Cron decorators) ────────────────
