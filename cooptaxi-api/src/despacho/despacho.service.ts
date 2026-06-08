@@ -160,7 +160,10 @@ export class DespachoService {
     page?: number;
     limit?: number;
   }) {
-    const { chofer_id, estado, desde, hasta, page = 1, limit = 20 } = filters;
+    const { chofer_id, estado, desde, hasta } = filters;
+    const pageNum  = Math.max(1, Number(filters.page)  || 1);
+    const limitNum = Math.min(100, Number(filters.limit) || 20);
+
     const qb = this.carreraRepo.createQueryBuilder('c')
       .leftJoinAndSelect('c.chofer', 'chofer')
       .leftJoinAndSelect('c.pasajero', 'pasajero');
@@ -172,11 +175,11 @@ export class DespachoService {
 
     const [data, total] = await qb
       .orderBy('c.created_at', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit)
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum)
       .getManyAndCount();
 
-    return { data, total, page };
+    return { data, total, page: pageNum };
   }
 
   // ─── Cola actual (para despachador) ──────────────────

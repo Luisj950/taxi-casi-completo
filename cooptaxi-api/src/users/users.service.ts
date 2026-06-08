@@ -36,7 +36,10 @@ export class UsersService {
     page?: number;
     limit?: number;
   }) {
-    const { rol, activo, page = 1, limit = 20 } = filters;
+    const pageNum  = Math.max(1, Number(filters.page)  || 1);
+    const limitNum = Math.min(100, Number(filters.limit) || 20);
+    const { rol, activo } = filters;
+
     const qb = this.repo.createQueryBuilder('u')
       .leftJoinAndSelect('u.vehiculo', 'v')
       .leftJoinAndSelect('u.cuotas', 'cuotas');
@@ -45,11 +48,11 @@ export class UsersService {
     if (activo !== undefined) qb.andWhere('u.activo = :activo', { activo });
 
     const [data, total] = await qb
-      .skip((page - 1) * limit)
-      .take(limit)
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum)
       .getManyAndCount();
 
-    return { data, total, page, limit };
+    return { data, total, page: pageNum, limit: limitNum };
   }
 
   async findOne(id: string): Promise<User> {
