@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth.store';
 import { useCarreraStore } from '@/store/carrera.store';
 import { useDespachoSocket } from '@/hooks/useSocket';
-import { altaDemandaApi } from '@/lib/api';
+import { altaDemandaApi, authApi } from '@/lib/api';
 import { Badge, Card, InfoRow } from '@/components/ui';
-import { Star, Clock, AlertTriangle, CheckCircle, Wifi, WifiOff } from 'lucide-react';
+import { Star, Clock, AlertTriangle, CheckCircle, Wifi, LogOut } from 'lucide-react';
 import dayjs from 'dayjs';
 
 function diasDocBadge(dias: number) {
@@ -16,8 +16,14 @@ function diasDocBadge(dias: number) {
 
 export default function HomePage() {
   const navigate   = useNavigate();
-  const { user }   = useAuthStore();
+  const { user, clearAuth } = useAuthStore();
   const { incoming } = useCarreraStore();
+
+  async function handleLogout() {
+    try { await authApi.logout(); } catch {}
+    clearAuth();
+    navigate('/login');
+  }
 
   // Conectar al WebSocket al montar
   const { emit } = useDespachoSocket(user?.id ?? '');
@@ -48,9 +54,18 @@ export default function HomePage() {
             <p className="text-white/70 text-xs">Bienvenido,</p>
             <h1 className="text-white text-lg font-bold">{user?.nombre}</h1>
           </div>
-          <div className="flex items-center gap-1 bg-white/15 rounded-full px-3 py-1.5">
-            <Wifi size={13} className="text-green-300" />
-            <span className="text-white text-xs font-medium">En línea</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-white/15 rounded-full px-3 py-1.5">
+              <Wifi size={13} className="text-green-300" />
+              <span className="text-white text-xs font-medium">En línea</span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="bg-white/15 rounded-full p-1.5 hover:bg-white/25 transition-colors"
+              title="Cerrar sesión"
+            >
+              <LogOut size={15} className="text-white" />
+            </button>
           </div>
         </div>
 
