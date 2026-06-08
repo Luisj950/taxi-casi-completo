@@ -18,6 +18,9 @@ export default function LoginPage() {
     setLoading(true); setError('');
     try {
       const { data } = await authApi.login(email, password);
+      // Guardar token ANTES de llamar me() para que el interceptor lo envíe
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
       const { data: me } = await authApi.me();
       setAuth(me as UserPasajero, data.access_token, data.refresh_token);
       navigate('/home', { replace: true });

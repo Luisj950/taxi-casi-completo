@@ -65,7 +65,7 @@ export class FinanzasService {
     cuota.pagada = true;
     cuota.fecha_pago = new Date();
     cuota.metodo_pago = dto.metodo;
-    `cuota.comprobante = dto.comprobante || '';`
+    cuota.comprobante = dto.comprobante || '';
     await this.repo.save(cuota);
 
     // Verificar si el socio quedó sin mora

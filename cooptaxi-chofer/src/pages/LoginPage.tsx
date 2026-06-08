@@ -24,7 +24,9 @@ export default function LoginPage() {
         setError('Esta app es solo para conductores.');
         return;
       }
-      // Obtener perfil completo con vehiculo y documentos
+      // Guardar token ANTES de llamar me() para que el interceptor lo envíe
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
       const { data: me } = await authApi.me();
       setAuth(me as UserChofer, data.access_token, data.refresh_token);
       navigate('/home', { replace: true });

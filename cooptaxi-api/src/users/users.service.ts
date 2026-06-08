@@ -84,7 +84,7 @@ export class UsersService {
 
   async setRefreshToken(id: string, token: string | null): Promise<void> {
     const hash = token ? await bcrypt.hash(token, 10) : null;
-    `await this.repo.update(id, { refresh_token_hash: hash as any });`
+    await this.repo.update(id, { refresh_token_hash: hash as any });
   }
 
   async setEstadoChofer(id: string, estado: EstadoChofer): Promise<void> {
