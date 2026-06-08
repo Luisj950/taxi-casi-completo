@@ -62,7 +62,17 @@ export default function HomePage() {
     try {
       setSolicitud(solicitudData);
       const { data } = await despachoApi.solicitar(solicitudData);
-      setCarrera({ ...data, estado: 'PENDIENTE', origen_descripcion: origen, destino_descripcion: destino, created_at: new Date().toISOString() } as any);
+      setCarrera({
+        id:                  data.carrera_id,
+        estado:              'PENDIENTE',
+        origen_descripcion:  origen,
+        destino_descripcion: destino,
+        origen_lat:          solicitudData.origen.lat,
+        origen_lng:          solicitudData.origen.lng,
+        destino_lat:         solicitudData.destino.lat,
+        destino_lng:         solicitudData.destino.lng,
+        created_at:          new Date().toISOString(),
+      });
       navigate('/esperando');
     } catch {
       setError('No se pudo solicitar el taxi. Intenta de nuevo.');

@@ -121,6 +121,16 @@ export class DespachoService {
     };
   }
 
+  // ─── Una carrera por ID (para polling del pasajero) ──
+  async findOne(id: string) {
+    const carrera = await this.carreraRepo.findOne({
+      where: { id },
+      relations: ['chofer', 'chofer.vehiculo', 'pasajero'],
+    });
+    if (!carrera) throw new NotFoundException('Carrera no encontrada');
+    return carrera;
+  }
+
   // ─── Historial ────────────────────────────────────────
   async findAll(filters: {
     chofer_id?: string;

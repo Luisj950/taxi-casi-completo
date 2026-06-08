@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { documentosApi } from '@/lib/api';
-import { Card, Badge, SectionTitle, EmptyState, Spinner } from '@/components/ui';
-import { AlertTriangle } from 'lucide-react';
+import { documentosApi, usersApi } from '@/lib/api';
+import { Card, Badge, Button, Modal, Input, Select, SectionTitle, EmptyState, Spinner } from '@/components/ui';
+import { AlertTriangle, FilePlus } from 'lucide-react';
 import dayjs from 'dayjs';
-import type { Documento } from '@/types';
+import type { Documento, User } from '@/types';
 
 function diasBadge(dias: number) {
   if (dias <= 7)  return <Badge variant="red">{dias} días</Badge>;
@@ -12,22 +13,53 @@ function diasBadge(dias: number) {
 }
 
 export default function DocumentosPage() {
+  const qc = useQueryClient();
+  const [openModal, setModal] = useState(false);
+  const [form, setForm] = useState({
+    user_id: '',
+    tipo: 'LICENCIA' as 'LICENCIA' | 'MATRICULA' | 'SPPAT' | 'RTV',
+    numero_documento: '',
+    fecha_vencimiento: '',
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ['docs-30'],
     queryFn:  () => documentosApi.list({ dias: 30 }),
     refetchInterval: 60_000,
   });
 
-  const docs = (data?.data ?? []) as Documento[];
+  const { data: sociosRes } = useQuery({
+    queryKey: ['socios-select'],
+    queryFn:  () => usersApi.list({ rol: 'CHOFER', limit: 100 }),
+  });
+
+  const crear = useMutation({
+    mutationFn: () => documentosApi.create(form),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['docs-30'] });
+      setModal(false);
+      setForm({ user_id: '', tipo: 'LICENCIA', numero_documento: '', fecha_vencimiento: '' });
+    },
+  });
+
+  const docs   = (data?.data ?? []) as Documento[];
+  const socios = ((sociosRes?.data?.data ?? []) as User[]);
+
+  const canSubmit = form.user_id && form.tipo && form.fecha_vencimiento;
 
   return (
     <div className="p-6 max-w-4xl space-y-5">
-      <div className="flex items-center gap-2">
-        <AlertTriangle size={18} className="text-warn-400" />
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">Documentos</h1>
-          <p className="text-xs text-gray-400">Licencias, matrículas, SPPAT y RTV próximos a vencer</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={18} className="text-warn-400" />
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">Documentos</h1>
+            <p className="text-xs text-gray-400">Licencias, matrículas, SPPAT y RTV</p>
+          </div>
         </div>
+        <Button size="sm" onClick={() => setModal(true)}>
+          <FilePlus size={14} /> Registrar documento
+        </Button>
       </div>
 
       <div className="grid grid-cols-4 gap-3">
@@ -42,7 +74,7 @@ export default function DocumentosPage() {
         })}
       </div>
 
-      <SectionTitle>Próximos 30 días</SectionTitle>
+      <SectionTitle>Próximos 30 días a vencer</SectionTitle>
       <Card padding={false}>
         {isLoading && <div className="flex justify-center py-10"><Spinner /></div>}
         {!isLoading && docs.length === 0 && <EmptyState message="Sin documentos próximos a vencer" icon="📄" />}
@@ -77,6 +109,56 @@ export default function DocumentosPage() {
           </table>
         )}
       </Card>
+
+      {/* Modal registrar documento */}
+      <Modal
+        open={openModal}
+        onClose={() => setModal(false)}
+        title="Registrar documento"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setModal(false)}>Cancelar</Button>
+            <Button size="sm" loading={crear.isPending} disabled={!canSubmit} onClick={() => crear.mutate()}>
+              Registrar
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Select
+            label="Socio / Chofer"
+            value={form.user_id}
+            onChange={(e) => setForm((f) => ({ ...f, user_id: e.target.value }))}
+          >
+            <option value="">Selecciona un socio...</option>
+            {socios.map((s) => (
+              <option key={s.id} value={s.id}>{s.nombre} — {s.email}</option>
+            ))}
+          </Select>
+          <Select
+            label="Tipo de documento"
+            value={form.tipo}
+            onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value as typeof form.tipo }))}
+          >
+            <option value="LICENCIA">Licencia de conducir</option>
+            <option value="MATRICULA">Matrícula vehicular</option>
+            <option value="SPPAT">SPPAT</option>
+            <option value="RTV">RTV (Revisión Técnica)</option>
+          </Select>
+          <Input
+            label="Número de documento (opcional)"
+            placeholder="Ej: LIC-001234"
+            value={form.numero_documento}
+            onChange={(e) => setForm((f) => ({ ...f, numero_documento: e.target.value }))}
+          />
+          <Input
+            label="Fecha de vencimiento"
+            type="date"
+            value={form.fecha_vencimiento}
+            onChange={(e) => setForm((f) => ({ ...f, fecha_vencimiento: e.target.value }))}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

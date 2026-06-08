@@ -1,13 +1,18 @@
 import { Controller, Post, Body, UseGuards, Request, Get } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, RefreshDto } from './dto/auth.dto';
+import { LoginDto, RefreshDto, RegisterPasajeroDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly svc: AuthService) {}
+
+  @Post('register')
+  register(@Body() dto: RegisterPasajeroDto) {
+    return this.svc.registerPasajero(dto);
+  }
 
   @Post('login')
   login(@Body() dto: LoginDto) {

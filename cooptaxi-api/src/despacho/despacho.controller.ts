@@ -49,6 +49,12 @@ export class DespachoController {
     return this.svc.completar(req.user.id, id, dto);
   }
 
+  @Get('carreras/:id')
+  @Roles(UserRol.ADMIN, UserRol.DESPACHADOR, UserRol.CHOFER, UserRol.PASAJERO)
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.svc.findOne(id);
+  }
+
   @Get('carreras')
   @Roles(UserRol.ADMIN, UserRol.DESPACHADOR, UserRol.CHOFER)
   findAll(

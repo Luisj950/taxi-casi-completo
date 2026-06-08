@@ -23,8 +23,10 @@ export default function RegisterPage() {
     }
     setLoading(true); setError('');
     try {
-      await authApi.register(form);
-      const { data } = await authApi.login(form.email, form.password);
+      // register ya devuelve tokens directamente
+      const { data } = await authApi.register(form);
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
       const { data: me } = await authApi.me();
       setAuth(me as UserPasajero, data.access_token, data.refresh_token);
       navigate('/home', { replace: true });

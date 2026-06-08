@@ -5,8 +5,9 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
-import { LoginDto, RefreshDto } from './dto/auth.dto';
+import { LoginDto, RefreshDto, RegisterPasajeroDto } from './dto/auth.dto';
 import { JwtPayload } from './jwt.strategy';
+import { UserRol } from '../users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +16,23 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly cfg: ConfigService,
   ) {}
+
+  async registerPasajero(dto: RegisterPasajeroDto) {
+    const user = await this.usersService.create({
+      nombre:   dto.nombre,
+      email:    dto.email,
+      password: dto.password,
+      telefono: dto.telefono,
+      rol:      UserRol.PASAJERO,
+    });
+    const tokens = await this.generateTokens(user.id, user.email, user.rol);
+    await this.usersService.setRefreshToken(user.id, tokens.refresh_token);
+    return {
+      access_token:  tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol },
+    };
+  }
 
   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmail(dto.email);

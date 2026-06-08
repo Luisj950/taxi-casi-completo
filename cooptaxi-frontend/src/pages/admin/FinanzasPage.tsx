@@ -1,19 +1,45 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { finanzasApi } from '@/lib/api';
+import { finanzasApi, usersApi } from '@/lib/api';
 import { Card, Badge, Button, Modal, Input, Select, SectionTitle, EmptyState, Spinner, StatCard } from '@/components/ui';
-import { DollarSign } from 'lucide-react';
+import { DollarSign, Plus } from 'lucide-react';
 import dayjs from 'dayjs';
-import type { Cuota } from '@/types';
+import type { Cuota, User } from '@/types';
 
 export default function FinanzasPage() {
   const qc = useQueryClient();
-  const [pagando, setPagando] = useState<Cuota | null>(null);
+  const [pagando,    setPagando]    = useState<Cuota | null>(null);
   const [comprobante, setComprobante] = useState('');
-  const [metodo, setMetodo] = useState<'EFECTIVO' | 'TRANSFERENCIA'>('EFECTIVO');
+  const [metodo,     setMetodo]     = useState<'EFECTIVO' | 'TRANSFERENCIA'>('EFECTIVO');
+  const [openNueva,  setOpenNueva]  = useState(false);
+  const [nuevaCuota, setNuevaCuota] = useState({
+    socio_id:          '',
+    tipo:              'MULTA' as 'MENSUAL' | 'MULTA' | 'ESPECIAL',
+    monto:             '',
+    fecha_vencimiento: '',
+    descripcion:       '',
+  });
 
   const hoy   = dayjs().startOf('month').format('YYYY-MM-DD');
   const fin   = dayjs().endOf('month').format('YYYY-MM-DD');
+
+  const { data: sociosRes } = useQuery({
+    queryKey: ['socios-finanzas'],
+    queryFn:  () => usersApi.list({ rol: 'CHOFER', limit: 100 }),
+  });
+
+  const crearCuota = useMutation({
+    mutationFn: () => finanzasApi.crear({
+      ...nuevaCuota,
+      monto: Number(nuevaCuota.monto),
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cuotas'] });
+      qc.invalidateQueries({ queryKey: ['reporte'] });
+      setOpenNueva(false);
+      setNuevaCuota({ socio_id: '', tipo: 'MULTA', monto: '', fecha_vencimiento: '', descripcion: '' });
+    },
+  });
 
   const { data: cuotasRes, isLoading } = useQuery({
     queryKey: ['cuotas'],
@@ -38,15 +64,22 @@ export default function FinanzasPage() {
 
   const cuotas  = (cuotasRes?.data?.data ?? []) as Cuota[];
   const reporte = reporteRes?.data;
+  const socios  = ((sociosRes?.data?.data ?? []) as User[]);
+  const canCrear = nuevaCuota.socio_id && nuevaCuota.monto && nuevaCuota.fecha_vencimiento;
 
   return (
     <div className="p-6 max-w-5xl space-y-5">
-      <div className="flex items-center gap-2">
-        <DollarSign size={18} className="text-success-600" />
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">Finanzas</h1>
-          <p className="text-xs text-gray-400">Cuotas, pagos y reporte mensual</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <DollarSign size={18} className="text-success-600" />
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">Finanzas</h1>
+            <p className="text-xs text-gray-400">Cuotas, multas y reporte mensual</p>
+          </div>
         </div>
+        <Button size="sm" onClick={() => setOpenNueva(true)}>
+          <Plus size={14} /> Nueva cuota / multa
+        </Button>
       </div>
 
       {/* Resumen del mes */}
@@ -103,6 +136,62 @@ export default function FinanzasPage() {
           </table>
         )}
       </Card>
+
+      {/* Modal nueva cuota / multa */}
+      <Modal
+        open={openNueva}
+        onClose={() => setOpenNueva(false)}
+        title="Nueva cuota / multa"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setOpenNueva(false)}>Cancelar</Button>
+            <Button size="sm" loading={crearCuota.isPending} disabled={!canCrear} onClick={() => crearCuota.mutate()}>
+              Registrar
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Select
+            label="Socio / Chofer"
+            value={nuevaCuota.socio_id}
+            onChange={(e) => setNuevaCuota((f) => ({ ...f, socio_id: e.target.value }))}
+          >
+            <option value="">Selecciona un socio...</option>
+            {socios.map((s) => (
+              <option key={s.id} value={s.id}>{s.nombre} — {s.email}</option>
+            ))}
+          </Select>
+          <Select
+            label="Tipo"
+            value={nuevaCuota.tipo}
+            onChange={(e) => setNuevaCuota((f) => ({ ...f, tipo: e.target.value as typeof nuevaCuota.tipo }))}
+          >
+            <option value="MULTA">Multa</option>
+            <option value="MENSUAL">Cuota mensual</option>
+            <option value="ESPECIAL">Cuota especial</option>
+          </Select>
+          <Input
+            label="Monto ($)"
+            type="number"
+            placeholder="25.00"
+            value={nuevaCuota.monto}
+            onChange={(e) => setNuevaCuota((f) => ({ ...f, monto: e.target.value }))}
+          />
+          <Input
+            label="Fecha de vencimiento"
+            type="date"
+            value={nuevaCuota.fecha_vencimiento}
+            onChange={(e) => setNuevaCuota((f) => ({ ...f, fecha_vencimiento: e.target.value }))}
+          />
+          <Input
+            label="Descripción (opcional)"
+            placeholder="Ej: Multa por tardanza en turno"
+            value={nuevaCuota.descripcion}
+            onChange={(e) => setNuevaCuota((f) => ({ ...f, descripcion: e.target.value }))}
+          />
+        </div>
+      </Modal>
 
       {/* Modal pago */}
       <Modal
