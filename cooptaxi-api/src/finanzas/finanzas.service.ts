@@ -2,20 +2,29 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { IsString, IsEnum, IsNumber, IsOptional, IsUUID, Min } from 'class-validator';
 const dayjs = require('dayjs');
 import { Cuota, TipoCuota, MetodoPago } from './entities/cuota.entity';
 
 export class CreateCuotaDto {
-  socio_id!: string;
-  tipo!: TipoCuota;
-  monto!: number;
-  fecha_vencimiento!: string;
+  @IsUUID()
+  socio_id: string;
+  @IsEnum(TipoCuota)
+  tipo: TipoCuota;
+  @IsNumber() @Min(0)
+  monto: number;
+  @IsString()
+  fecha_vencimiento: string;
+  @IsOptional() @IsString()
   descripcion?: string;
 }
 
 export class PagarCuotaDto {
-  monto!: number;
-  metodo!: MetodoPago;
+  @IsNumber() @Min(0)
+  monto: number;
+  @IsEnum(MetodoPago)
+  metodo: MetodoPago;
+  @IsOptional() @IsString()
   comprobante?: string;
 }
 

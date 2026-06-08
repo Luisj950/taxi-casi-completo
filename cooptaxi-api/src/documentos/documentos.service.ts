@@ -6,16 +6,25 @@ import * as dayjs from 'dayjs';
 import { Documento, TipoDocumento } from './entities/documento.entity';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
 
+import { IsString, IsEnum, IsOptional, IsUUID } from 'class-validator';
+
 export class CreateDocumentoDto {
+  @IsOptional() @IsUUID()
   user_id?: string;
+  @IsOptional() @IsUUID()
   vehiculo_id?: string;
+  @IsEnum(TipoDocumento)
   tipo: TipoDocumento;
+  @IsString()
   fecha_vencimiento: string;
+  @IsOptional() @IsString()
   numero_documento?: string;
 }
 
 export class UpdateDocumentoDto {
+  @IsOptional() @IsString()
   fecha_vencimiento?: string;
+  @IsOptional() @IsString()
   numero_documento?: string;
 }
 

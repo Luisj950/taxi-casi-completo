@@ -28,6 +28,15 @@ export class DespachoController {
     return this.svc.solicitar(req.user.id, dto);
   }
 
+  @Patch('carreras/:id/cancelar')
+  @Roles(UserRol.PASAJERO)
+  cancelar(
+    @Request() req: any,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.svc.cancelar(req.user.id, id);
+  }
+
   @Patch('carreras/:id/responder')
   @Roles(UserRol.CHOFER)
   @UseGuards(ChoferActivoGuard)

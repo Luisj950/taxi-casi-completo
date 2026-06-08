@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { usersApi, despachoApi, documentosApi, altaDemandaApi } from '@/lib/api';
 import { StatCard, Card, Badge, SectionTitle, Spinner } from '@/components/ui';
-import { Users, Car, FileText, DollarSign, Zap, AlertTriangle } from 'lucide-react';
+import { Users, Car, FileText, DollarSign, Zap, AlertTriangle, RefreshCw } from 'lucide-react';
 import dayjs from 'dayjs';
 import type { User, Carrera, Documento, EstadoAltaDemanda } from '@/types';
 
@@ -22,11 +22,14 @@ export default function DashboardPage() {
   const { data: sociosRes } = useQuery({
     queryKey: ['socios'],
     queryFn:  () => usersApi.list({ rol: 'CHOFER', limit: 50 }),
+    staleTime: 0,
+    refetchInterval: 30_000,
   });
-  const { data: carrerasRes } = useQuery({
+  const { data: carrerasRes, refetch: refetchCarreras } = useQuery({
     queryKey: ['carreras-hoy'],
     queryFn:  () => despachoApi.carreras({ desde: dayjs().startOf('day').toISOString(), limit: 6 }),
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
+    staleTime: 0,
   });
   const { data: docsRes } = useQuery({
     queryKey: ['docs-proximos'],
@@ -54,6 +57,12 @@ export default function DashboardPage() {
           <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
           <p className="text-xs text-gray-400">{dayjs().format('dddd, D MMMM YYYY')}</p>
         </div>
+        <button
+          onClick={() => refetchCarreras()}
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <RefreshCw size={13} /> Actualizar
+        </button>
       </div>
 
       {/* Banner alta demanda */}

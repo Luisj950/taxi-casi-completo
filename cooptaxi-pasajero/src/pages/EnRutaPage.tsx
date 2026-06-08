@@ -1,4 +1,4 @@
-import { useEffect, Suspense, lazy } from 'react';
+import { useEffect, Suspense, lazy, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useCarreraStore } from '@/store/carrera.store';
@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { usePasajeroSocket } from '@/hooks/useSocket';
 import { despachoApi } from '@/lib/api';
 import { ChoferCard, Card, Spinner } from '@/components/ui';
-import { MapPin } from 'lucide-react';
+import { MapPin, X } from 'lucide-react';
 import type { CarreraActiva } from '@/types';
 
 // Carga diferida del mapa para no bloquear el render inicial
@@ -16,6 +16,15 @@ export default function EnRutaPage() {
   const navigate   = useNavigate();
   const { user }   = useAuthStore();
   const { carrera, gpsChofer, setParaCalificar, clear } = useCarreraStore();
+  const [cancelando, setCancelando] = useState(false);
+
+  async function handleCancelar() {
+    if (!carrera) return;
+    setCancelando(true);
+    try { await despachoApi.cancelar(carrera.id); } catch {}
+    clear();
+    navigate('/home', { replace: true });
+  }
 
   usePasajeroSocket(user?.id ?? '', carrera?.id);
 
@@ -117,9 +126,18 @@ export default function EnRutaPage() {
           <span className="text-sm font-bold text-brand-700">$1.50 – $3.00</span>
         </div>
 
-        <p className="text-center text-xs font-mono text-gray-300">
-          #{carrera.id.slice(-8).toUpperCase()}
-        </p>
+        <div className="flex items-center justify-between pt-1">
+          <p className="text-xs font-mono text-gray-300">
+            #{carrera.id.slice(-8).toUpperCase()}
+          </p>
+          <button
+            onClick={handleCancelar}
+            disabled={cancelando}
+            className="flex items-center gap-1.5 text-xs text-danger-500 font-medium bg-danger-50 px-3 py-1.5 rounded-xl active:bg-danger-100 disabled:opacity-50"
+          >
+            <X size={13} /> {cancelando ? 'Cancelando...' : 'Cancelar viaje'}
+          </button>
+        </div>
       </div>
     </div>
   );

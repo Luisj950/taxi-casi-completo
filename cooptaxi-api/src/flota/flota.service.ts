@@ -2,23 +2,38 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { IsString, IsNumber, IsOptional, IsUUID, Min, Max, IsEnum } from 'class-validator';
 import { Vehiculo, TipoMantenimiento } from './entities/vehiculo.entity';
 import { Mantenimiento } from './entities/mantenimiento.entity';
 
 export class CreateVehiculoDto {
+  @IsUUID()
   socio_id: string;
+  @IsString()
   placa: string;
+  @IsString()
   marca: string;
+  @IsString()
   modelo: string;
+  @IsNumber()
+  @Min(1980) @Max(2030)
   anio: number;
+  @IsOptional() @IsString()
   color?: string;
+  @IsOptional() @IsNumber()
+  km_actual?: number;
 }
 
 export class CreateMantenimientoDto {
+  @IsEnum(TipoMantenimiento)
   tipo: TipoMantenimiento;
+  @IsOptional() @IsString()
   descripcion?: string;
+  @IsOptional() @IsNumber()
   km_actual?: number;
+  @IsOptional() @IsString()
   fecha?: string;
+  @IsOptional() @IsNumber()
   costo?: number;
 }
 

@@ -38,7 +38,8 @@ export class UsersService {
   }) {
     const { rol, activo, page = 1, limit = 20 } = filters;
     const qb = this.repo.createQueryBuilder('u')
-      .leftJoinAndSelect('u.vehiculo', 'v');
+      .leftJoinAndSelect('u.vehiculo', 'v')
+      .leftJoinAndSelect('u.cuotas', 'cuotas');
 
     if (rol) qb.andWhere('u.rol = :rol', { rol });
     if (activo !== undefined) qb.andWhere('u.activo = :activo', { activo });

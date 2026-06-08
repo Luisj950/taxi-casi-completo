@@ -121,6 +121,26 @@ export class DespachoService {
     };
   }
 
+  // ─── Cancelar carrera (pasajero) ─────────────────────
+  async cancelar(pasajero_id: string, carrera_id: string) {
+    const carrera = await this.carreraRepo.findOne({ where: { id: carrera_id } });
+    if (!carrera) throw new NotFoundException('Carrera no encontrada');
+    if (carrera.pasajero_id !== pasajero_id)
+      throw new BadRequestException('No eres el pasajero de esta carrera');
+    if (carrera.estado === EstadoCarrera.COMPLETADA || carrera.estado === EstadoCarrera.CANCELADA)
+      throw new BadRequestException('La carrera ya no puede cancelarse');
+
+    carrera.estado = EstadoCarrera.CANCELADA;
+    await this.carreraRepo.save(carrera);
+
+    if (carrera.chofer_id) {
+      await this.usersService.setEstadoChofer(carrera.chofer_id, EstadoChofer.DISPONIBLE);
+      this.gateway.notificarChofer(carrera.chofer_id, 'carrera_cancelada', { carrera_id });
+    }
+    this.gateway.broadcastCola();
+    return { carrera_id, cancelada: true };
+  }
+
   // ─── Una carrera por ID (para polling del pasajero) ──
   async findOne(id: string) {
     const carrera = await this.carreraRepo.findOne({

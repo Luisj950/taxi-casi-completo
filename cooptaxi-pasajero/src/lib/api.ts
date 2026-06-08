@@ -41,8 +41,7 @@ export const authApi = {
 
 export const despachoApi = {
   solicitar: (d: object) => api.post('/despacho/carreras', d),
-  cancelar:  (id: string) =>
-    api.patch(`/despacho/carreras/${id}/responder`, { accion: 'CANCELAR' }),
+  cancelar:  (id: string) => api.patch(`/despacho/carreras/${id}/cancelar`),
   calificar: (id: string, calificacion: number, comentario?: string) =>
     api.patch(`/despacho/carreras/${id}/completar`, { calificacion, comentario }),
   miCarrera: (id: string) => api.get(`/despacho/carreras/${id}`),
