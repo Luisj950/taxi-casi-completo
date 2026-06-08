@@ -1,7 +1,8 @@
 import {
   IsNumber, IsString, IsOptional, IsEnum,
-  IsUUID, Min, Max, IsNotEmpty,
+  IsUUID, Min, Max, IsNotEmpty, ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UbicacionDto {
@@ -21,9 +22,13 @@ export class UbicacionDto {
 
 export class SolicitarCarreraDto {
   @ApiProperty()
+  @ValidateNested()
+  @Type(() => UbicacionDto)
   origen: UbicacionDto;
 
   @ApiProperty()
+  @ValidateNested()
+  @Type(() => UbicacionDto)
   destino: UbicacionDto;
 }
 
