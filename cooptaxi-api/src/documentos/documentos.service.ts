@@ -48,13 +48,18 @@ export class DocumentosService {
     tipo?: TipoDocumento;
     user_id?: string;
   }) {
-    const { dias = 15, tipo, user_id } = filters;
-    const limite = dayjs().add(dias, 'day').format('YYYY-MM-DD');
+    const { tipo, user_id } = filters;
+    const dias = Number(filters.dias) || 0;
 
     const qb = this.repo.createQueryBuilder('d')
       .leftJoinAndSelect('d.user', 'u')
-      .leftJoinAndSelect('d.vehiculo', 'v')
-      .where('d.fecha_vencimiento <= :limite', { limite });
+      .leftJoinAndSelect('d.vehiculo', 'v');
+
+    // Si dias > 0 filtrar solo los que vencen en ese rango
+    if (dias > 0) {
+      const limite = dayjs().add(dias, 'day').format('YYYY-MM-DD');
+      qb.where('d.fecha_vencimiento <= :limite', { limite });
+    }
 
     if (tipo) qb.andWhere('d.tipo = :tipo', { tipo });
     if (user_id) qb.andWhere('d.user_id = :user_id', { user_id });

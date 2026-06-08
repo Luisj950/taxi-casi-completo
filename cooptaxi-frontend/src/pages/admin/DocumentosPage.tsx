@@ -7,15 +7,24 @@ import dayjs from 'dayjs';
 import type { Documento, User } from '@/types';
 
 function diasBadge(dias: number) {
-  if (dias <= 7)  return <Badge variant="red">{dias} días</Badge>;
-  if (dias <= 15) return <Badge variant="amber">{dias} días</Badge>;
-  return <Badge variant="green">{dias} días</Badge>;
+  if (dias < 0)   return <Badge variant="red">Vencido</Badge>;
+  if (dias <= 7)  return <Badge variant="red">{dias}d</Badge>;
+  if (dias <= 30) return <Badge variant="amber">{dias}d</Badge>;
+  return <Badge variant="green">Vigente</Badge>;
 }
+
+const FILTROS = [
+  { label: 'Todos los documentos', dias: 0 },
+  { label: 'Vencen en 30 días',    dias: 30 },
+  { label: 'Vencen en 15 días',    dias: 15 },
+  { label: 'Vencen en 7 días',     dias: 7 },
+] as const;
 
 export default function DocumentosPage() {
   const qc = useQueryClient();
   const [openModal, setModal] = useState(false);
   const [formError, setFormError] = useState('');
+  const [filtroDias, setFiltroDias] = useState(0);
   const [form, setForm] = useState({
     user_id: '',
     tipo: 'LICENCIA' as 'LICENCIA' | 'MATRICULA' | 'SPPAT' | 'RTV',
@@ -24,8 +33,8 @@ export default function DocumentosPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['docs-30'],
-    queryFn:  () => documentosApi.list({ dias: 30 }),
+    queryKey: ['docs-all', filtroDias],
+    queryFn:  () => documentosApi.list(filtroDias > 0 ? { dias: filtroDias } : {}),
     refetchInterval: 60_000,
   });
 
@@ -38,7 +47,7 @@ export default function DocumentosPage() {
     mutationFn: () => documentosApi.create(form),
     onSuccess: () => {
       setFormError('');
-      qc.invalidateQueries({ queryKey: ['docs-30'] });
+      qc.invalidateQueries({ queryKey: ['docs-all'] });
       setModal(false);
       setForm({ user_id: '', tipo: 'LICENCIA', numero_documento: '', fecha_vencimiento: '' });
     },
@@ -50,11 +59,16 @@ export default function DocumentosPage() {
 
   const docs   = (data?.data ?? []) as Documento[];
   const socios = ((sociosRes?.data?.data ?? []) as User[]);
-
   const canSubmit = form.user_id && form.tipo && form.fecha_vencimiento;
 
+  const conteo = (['LICENCIA','MATRICULA','SPPAT','RTV'] as const).map((tipo) => ({
+    tipo,
+    total: docs.filter((d) => d.tipo === tipo).length,
+    vencidos: docs.filter((d) => d.tipo === tipo && dayjs(d.fecha_vencimiento).diff(dayjs(), 'day') < 0).length,
+  }));
+
   return (
-    <div className="p-6 max-w-4xl space-y-5">
+    <div className="p-6 max-w-5xl space-y-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <AlertTriangle size={18} className="text-warn-400" />
@@ -63,27 +77,53 @@ export default function DocumentosPage() {
             <p className="text-xs text-gray-400">Licencias, matrículas, SPPAT y RTV</p>
           </div>
         </div>
-        <Button size="sm" onClick={() => setModal(true)}>
+        <Button size="sm" onClick={() => { setFormError(''); setModal(true); }}>
           <FilePlus size={14} /> Registrar documento
         </Button>
       </div>
 
+      {/* Resumen por tipo */}
       <div className="grid grid-cols-4 gap-3">
-        {(['LICENCIA','MATRICULA','SPPAT','RTV'] as const).map((tipo) => {
-          const count = docs.filter((d) => d.tipo === tipo).length;
-          return (
-            <div key={tipo} className="bg-gray-50 rounded-xl p-4 text-center">
-              <p className="text-2xl font-semibold text-gray-900">{count}</p>
-              <p className="text-xs text-gray-400 mt-1">{tipo}</p>
-            </div>
-          );
-        })}
+        {conteo.map(({ tipo, total, vencidos }) => (
+          <div key={tipo} className="bg-gray-50 rounded-xl p-4 text-center">
+            <p className="text-2xl font-semibold text-gray-900">{total}</p>
+            <p className="text-xs text-gray-400 mt-1">{tipo}</p>
+            {vencidos > 0 && (
+              <p className="text-[10px] text-danger-500 font-medium mt-1">{vencidos} vencido{vencidos > 1 ? 's' : ''}</p>
+            )}
+          </div>
+        ))}
       </div>
 
-      <SectionTitle>Próximos 30 días a vencer</SectionTitle>
+      {/* Filtro */}
+      <div className="flex items-center gap-2">
+        {FILTROS.map((f) => (
+          <button
+            key={f.dias}
+            onClick={() => setFiltroDias(f.dias)}
+            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+              filtroDias === f.dias
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <SectionTitle>
+        {filtroDias > 0 ? `Documentos que vencen en ${filtroDias} días` : 'Todos los documentos'}
+      </SectionTitle>
+
       <Card padding={false}>
         {isLoading && <div className="flex justify-center py-10"><Spinner /></div>}
-        {!isLoading && docs.length === 0 && <EmptyState message="Sin documentos próximos a vencer" icon="📄" />}
+        {!isLoading && docs.length === 0 && (
+          <EmptyState
+            message={filtroDias > 0 ? 'Sin documentos próximos a vencer' : 'Sin documentos registrados'}
+            icon="📄"
+          />
+        )}
         {!isLoading && docs.length > 0 && (
           <table className="table-base">
             <thead>
@@ -92,25 +132,38 @@ export default function DocumentosPage() {
                 <th>Tipo</th>
                 <th>N° Documento</th>
                 <th>Vence</th>
-                <th>Días restantes</th>
-                <th>Alerta enviada</th>
+                <th>Estado</th>
+                <th>Alerta</th>
               </tr>
             </thead>
             <tbody>
-              {docs.map((d) => (
-                <tr key={d.id}>
-                  <td className="pl-4 font-medium text-gray-800">{d.user?.nombre ?? '—'}</td>
-                  <td><Badge variant={d.tipo === 'LICENCIA' ? 'purple' : d.tipo === 'SPPAT' ? 'blue' : 'gray'}>{d.tipo}</Badge></td>
-                  <td className="font-mono text-xs text-gray-400">{d.numero_documento ?? '—'}</td>
-                  <td>{dayjs(d.fecha_vencimiento).format('DD/MM/YYYY')}</td>
-                  <td>{diasBadge(d.dias_restantes ?? 0)}</td>
-                  <td>
-                    {d.alerta_enviada
-                      ? <Badge variant="green">Sí</Badge>
-                      : <Badge variant="gray">No</Badge>}
-                  </td>
-                </tr>
-              ))}
+              {docs.map((d) => {
+                const dias = dayjs(d.fecha_vencimiento).diff(dayjs(), 'day');
+                return (
+                  <tr key={d.id}>
+                    <td className="pl-4 font-medium text-gray-800">{d.user?.nombre ?? '—'}</td>
+                    <td>
+                      <Badge variant={
+                        d.tipo === 'LICENCIA' ? 'purple' :
+                        d.tipo === 'SPPAT'    ? 'blue'   :
+                        d.tipo === 'RTV'      ? 'amber'  : 'gray'
+                      }>
+                        {d.tipo}
+                      </Badge>
+                    </td>
+                    <td className="font-mono text-xs text-gray-400">{d.numero_documento ?? '—'}</td>
+                    <td className={dias < 0 ? 'text-danger-600 font-medium' : 'text-gray-600'}>
+                      {dayjs(d.fecha_vencimiento).format('DD/MM/YYYY')}
+                    </td>
+                    <td>{diasBadge(dias)}</td>
+                    <td>
+                      {d.alerta_enviada
+                        ? <Badge variant="green">Enviada</Badge>
+                        : <Badge variant="gray">Pendiente</Badge>}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
