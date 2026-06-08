@@ -46,7 +46,10 @@ export class FinanzasService {
     page?: number;
     limit?: number;
   }) {
-    const { pagada, user_id, tipo, page = 1, limit = 20 } = filters;
+    const { pagada, user_id, tipo } = filters;
+    const pageNum  = Math.max(1, Number(filters.page)  || 1);
+    const limitNum = Math.min(100, Number(filters.limit) || 20);
+
     const qb = this.repo.createQueryBuilder('c')
       .leftJoinAndSelect('c.socio', 's');
 
@@ -56,8 +59,8 @@ export class FinanzasService {
 
     const [data, total] = await qb
       .orderBy('c.fecha_vencimiento', 'ASC')
-      .skip((page - 1) * limit)
-      .take(limit)
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum)
       .getManyAndCount();
 
     const total_pendiente = data

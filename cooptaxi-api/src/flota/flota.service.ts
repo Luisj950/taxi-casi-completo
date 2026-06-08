@@ -51,7 +51,10 @@ export class FlotaService {
   }
 
   async findAll(filters: { activo?: boolean; page?: number; limit?: number }) {
-    const { activo, page = 1, limit = 20 } = filters;
+    const { activo } = filters;
+    const pageNum  = Math.max(1, Number(filters.page)  || 1);
+    const limitNum = Math.min(100, Number(filters.limit) || 20);
+
     const qb = this.vehiculoRepo.createQueryBuilder('v')
       .leftJoinAndSelect('v.socio', 's')
       .leftJoinAndSelect('v.documentos', 'd');
@@ -59,8 +62,8 @@ export class FlotaService {
     if (activo !== undefined) qb.andWhere('v.activo = :activo', { activo });
 
     const [data, total] = await qb
-      .skip((page - 1) * limit)
-      .take(limit)
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum)
       .getManyAndCount();
 
     return {
