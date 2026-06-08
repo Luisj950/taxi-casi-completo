@@ -15,6 +15,7 @@ function diasBadge(dias: number) {
 export default function DocumentosPage() {
   const qc = useQueryClient();
   const [openModal, setModal] = useState(false);
+  const [formError, setFormError] = useState('');
   const [form, setForm] = useState({
     user_id: '',
     tipo: 'LICENCIA' as 'LICENCIA' | 'MATRICULA' | 'SPPAT' | 'RTV',
@@ -36,9 +37,14 @@ export default function DocumentosPage() {
   const crear = useMutation({
     mutationFn: () => documentosApi.create(form),
     onSuccess: () => {
+      setFormError('');
       qc.invalidateQueries({ queryKey: ['docs-30'] });
       setModal(false);
       setForm({ user_id: '', tipo: 'LICENCIA', numero_documento: '', fecha_vencimiento: '' });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message;
+      setFormError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Error al registrar el documento.'));
     },
   });
 
@@ -157,6 +163,11 @@ export default function DocumentosPage() {
             value={form.fecha_vencimiento}
             onChange={(e) => setForm((f) => ({ ...f, fecha_vencimiento: e.target.value }))}
           />
+          {formError && (
+            <p className="text-xs text-danger-700 bg-danger-50 border border-danger-100 rounded-lg px-3 py-2">
+              {formError}
+            </p>
+          )}
         </div>
       </Modal>
     </div>

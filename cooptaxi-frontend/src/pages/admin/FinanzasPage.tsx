@@ -12,6 +12,7 @@ export default function FinanzasPage() {
   const [comprobante, setComprobante] = useState('');
   const [metodo,     setMetodo]     = useState<'EFECTIVO' | 'TRANSFERENCIA'>('EFECTIVO');
   const [openNueva,  setOpenNueva]  = useState(false);
+  const [cuotaError, setCuotaError] = useState('');
   const [nuevaCuota, setNuevaCuota] = useState({
     socio_id:          '',
     tipo:              'MULTA' as 'MENSUAL' | 'MULTA' | 'ESPECIAL',
@@ -34,10 +35,15 @@ export default function FinanzasPage() {
       monto: Number(nuevaCuota.monto),
     }),
     onSuccess: () => {
+      setCuotaError('');
       qc.invalidateQueries({ queryKey: ['cuotas'] });
       qc.invalidateQueries({ queryKey: ['reporte'] });
       setOpenNueva(false);
       setNuevaCuota({ socio_id: '', tipo: 'MULTA', monto: '', fecha_vencimiento: '', descripcion: '' });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message;
+      setCuotaError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Error al registrar la cuota.'));
     },
   });
 
@@ -190,6 +196,11 @@ export default function FinanzasPage() {
             value={nuevaCuota.descripcion}
             onChange={(e) => setNuevaCuota((f) => ({ ...f, descripcion: e.target.value }))}
           />
+          {cuotaError && (
+            <p className="text-xs text-danger-700 bg-danger-50 border border-danger-100 rounded-lg px-3 py-2">
+              {cuotaError}
+            </p>
+          )}
         </div>
       </Modal>
 

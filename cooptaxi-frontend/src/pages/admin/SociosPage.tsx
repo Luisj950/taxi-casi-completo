@@ -36,7 +36,8 @@ export default function SociosPage() {
   const [search, setSearch]     = useState('');
   const [step, setStep]         = useState<'user' | 'vehiculo' | null>(null);
   const [editing, setEditing]   = useState<User | null>(null);
-  const [nuevoId, setNuevoId]   = useState<string | null>(null); // ID del chofer recién creado
+  const [nuevoId, setNuevoId]   = useState<string | null>(null);
+  const [formError, setFormError] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['users-list'],
@@ -55,20 +56,29 @@ export default function SociosPage() {
   const create = useMutation({
     mutationFn: (d: UserForm) => usersApi.create(d),
     onSuccess: (res) => {
+      setFormError('');
       qc.invalidateQueries({ queryKey: ['users-list'] });
       const creado = res.data as User;
       if (userForm.getValues('rol') === 'CHOFER') {
         setNuevoId(creado.id);
-        setStep('vehiculo'); // pasar al paso 2
+        setStep('vehiculo');
       } else {
         setStep(null);
       }
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message;
+      setFormError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Error al crear el socio.'));
     },
   });
 
   const update = useMutation({
     mutationFn: ({ id, d }: { id: string; d: Partial<UserForm> }) => usersApi.update(id, d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users-list'] }); setStep(null); },
+    onSuccess: () => { setFormError(''); qc.invalidateQueries({ queryKey: ['users-list'] }); setStep(null); },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message;
+      setFormError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Error al guardar cambios.'));
+    },
   });
 
   const crearVehiculo = useMutation({
@@ -90,12 +100,14 @@ export default function SociosPage() {
   function openCreate() {
     setEditing(null);
     setNuevoId(null);
+    setFormError('');
     userForm.reset({ rol: 'CHOFER', nombre: '', email: '', password: '' });
     setStep('user');
   }
 
   function openEdit(u: User) {
     setEditing(u);
+    setFormError('');
     userForm.reset({ nombre: u.nombre, email: u.email, rol: u.rol, cedula: u.cedula ?? '', telefono: u.telefono ?? '' });
     setStep('user');
   }
@@ -228,6 +240,11 @@ export default function SociosPage() {
           {!editing && userForm.watch('rol') === 'CHOFER' && (
             <p className="text-xs text-primary-600 bg-primary-50 px-3 py-2 rounded-lg">
               Al crear el chofer podrás registrar su vehículo en el siguiente paso.
+            </p>
+          )}
+          {formError && (
+            <p className="text-xs text-danger-700 bg-danger-50 border border-danger-100 rounded-lg px-3 py-2">
+              {formError}
             </p>
           )}
         </div>
